@@ -139,13 +139,31 @@ workflow get_reference_fastas {
         reference_csv
     main:
         subset_reference_accessions(reference_csv, params.num_iterations)
-        subset_reference_accessions.out.splitCsv(header: true).map { row -> tuple("${row.accession}","${row.category_id}", "${row.index}") }.set{ reference_accessions }
+        subset_reference_accessions.out.splitCsv(header: true).map { 
+            row -> def file_path = row.path ? file(row.path) : null
+                tuple("${row.accession}", "${row.category_id}", "${row.index}", file_path)
+            }.set{ reference_accessions }
 
-        reference_accessions.tap{ to_download }
-        download_reference_fasta(to_download.map{ accession, category, index -> [accession, category] }.unique())
-        reference_accessions.combine(download_reference_fasta.out, by: 0).map{ accession, category, index, category1, fasta -> [index, accession, category, fasta]}.set{downloaded}
+        reference_accessions.branch {
+            // if file_path is not null, then that means the user supplied a path to the fasta, so branch into local
+            local: it[3] != null
+            // if it is null, then try and download based on accession
+            download: it[3] == null
+        }.set { reference }
+
+        download_reference_fasta(reference.download.map{ accession, category, index, file_path -> [accession, category] }.unique())
+        
+        reference.download
+            .combine(download_reference_fasta.out, by: 0)
+            .map{ accession, category, index, file_path, category1, fasta -> [index, accession, category, fasta]}
+            .set{ downloaded }
+
+        reference.local
+            .map{ accession, category, index, file_path -> [index, accession, category, file_path]}
+            .mix(downloaded)
+            .set{ all_references }
     emit:
-      downloaded
+      all_references
 }
 
 workflow get_base_datasets {
