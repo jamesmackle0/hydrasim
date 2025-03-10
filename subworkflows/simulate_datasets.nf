@@ -50,7 +50,17 @@ process simulate_reads {
     simulator = params.lookup["${platform}"]
     if ("${simulator}" == "badread") {
         """
-        badread simulate --reference ${ref_fasta} --quantity ${ref_coverage}x ${params.badread_args} > ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads.fq
+        badread simulate --reference ${ref_fasta} --quantity ${ref_coverage}x \
+        --length ${params.badread_length} \
+        --identity ${params.badread_identity} \
+        --error_model ${params.badread_error_model} \
+        --qscore_model ${params.badread_qscore_model} \
+        --junk_reads ${params.badread_junk_reads} \
+        --random_reads ${params.badread_random_reads} \
+        --chimeras ${params.badread_chimeras} \
+        --glitches ${params.badread_glitches} \
+        > ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads.fq
+        
         gzip ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads.fq
         """
     } else {
@@ -75,7 +85,15 @@ process simulate_reads_paired {
         genome_length=\$(cat ${ref_fasta} | wc -c)
         num_reads=\$(echo "\$genome_length*${ref_coverage}/300" | bc)
         echo "\$genome_length \$num_reads"
-        wgsim -N \$num_reads ${params.wgsim_args} ${ref_fasta} ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads_1.fq ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads_2.fq
+        wgsim \
+        -N \$num_reads \
+        -1 ${params.wgsim_length_read1} \
+        -2 ${params.wgsim_length_read2} \
+        -r ${params.wgsim_mutation_rate} \
+        -R ${params.wgsim_indel_fraction} \
+        ${ref_fasta} \
+        ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads_1.fq \
+        ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads_2.fq
         gzip ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads_1.fq ${ref_accession}_${index}_${simulator}_${ref_coverage}x_reads_2.fq
         """
     } else {
