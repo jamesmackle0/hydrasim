@@ -47,4 +47,4 @@ nextflow run nfellaby/hydrasim -r dev --reference_csv test/test_data/test_hcid_a
 
 Hydrasim can spike in at various coverages which are set by default as 0.1x, 1x, 10x and 100x 
 
-this can be changed with the parameter --coverages and a list, at present the easiest way to change the coverages spiked in is to alter the params file itself
+This can be changed with the parameter --coverages and a list, at present the easiest way to change the coverages spiked in is to alter the params file itself
